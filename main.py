@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import pyautogui
 import math 
-import constants
+import src.constants as constants
 
 def get_game_image():
     coordinates = list()
@@ -31,29 +31,33 @@ def find_coordinates_objects_in_image(asset_addr,image,confidence):
 def draw_object(img, coordinates, matrix, color, number):
     to_compare = list()
     for i in range(len(coordinates)) :
-        x = math.ceil(coordinates[i].left/constants.SIZE)
-        y = math.ceil(coordinates[i].top/constants.SIZE)
-        if(not find_tuple_in_list(to_compare,(x-1,y-1))):
+        left = coordinates[i].left
+        top = coordinates[i].top
+        if(not find_coord_in_list(to_compare,(left,top))):
             cv2.circle(img,(coordinates[i].left+constants.SIZE_HALF,coordinates[i].top+constants.SIZE_HALF),constants.RADIUS,color,-1)
+            x = math.ceil((coordinates[i].left+constants.SIZE_HALF)/constants.WIDTH_SUB)
+            y = math.ceil((coordinates[i].top+constants.SIZE_HALF)/constants.HEIGHT_SUB)
             matrix[y-1][x-1] = number
-            to_compare.append((x-1,y-1))
+            to_compare.append((left,top))
 
 def draw_diamonds(img, coordinates_diamonds,matrix):
     to_compare = list()
     for i in range(len(coordinates_diamonds)) :
-        x = math.ceil(coordinates_diamonds[i].left/constants.SIZE)
-        y = math.ceil(coordinates_diamonds[i].top/constants.SIZE)
-        if(not find_tuple_in_list(to_compare,(x-1,y-1))):
+        left = coordinates_diamonds[i].left
+        top = coordinates_diamonds[i].top
+        x = math.ceil((coordinates_diamonds[i].left+constants.SIZE_HALF)/constants.WIDTH_SUB)
+        y = math.ceil((coordinates_diamonds[i].top+constants.SIZE_HALF)/constants.HEIGHT_SUB)
+        if(not find_coord_in_list(to_compare,(left,top))):
             if y == 1:
-                if x == 5:
+                if x == 6:
                     continue #skip diamond of the game title
             cv2.circle(img,(coordinates_diamonds[i].left+constants.SIZE_HALF,coordinates_diamonds[i].top+constants.SIZE_HALF),constants.RADIUS,constants.CYAN,-1)
             matrix[y-1][x-1] = constants.DIAMOND
-            to_compare.append((x-1,y-1))
+            to_compare.append((left,top))
 
 
-def fill_first_lines(img,matrix):
-    for i in range(3):
+def fill_lines(img,matrix):
+    for i in range(2):
         for j in range(10):
             matrix[i][j]=constants.WALL
             cv2.circle(img,(j*constants.SIZE+constants.SIZE_HALF,i*constants.SIZE+constants.SIZE_HALF),constants.RADIUS,constants.BROWN,-1)
@@ -68,10 +72,12 @@ def coordinates_many_same(number, file_addr, image, confidence):
         #add_list_to_list(coordinates,coordinates_n)
     return coordinates
 
-def find_tuple_in_list(list,tuple):
+def find_coord_in_list(list:list,coord:tuple):
+    value =constants.SIZE-5
     for item in list:
-        if item == tuple :
-            return True
+        if coord[0]+value>= item[0] and coord[0]-value<=item[0] :
+            if coord[1]+value>= item[1] and coord[1]-value<=item[1] :
+                return True
     return False
 
 def add_list_to_list(a:list,b:list):
@@ -81,9 +87,9 @@ def add_list_to_list(a:list,b:list):
 
 image = get_game_image()
 image = cv2.cvtColor(np.array(image),cv2.COLOR_RGB2BGR)
-save_image("gameScreen.jpg",image)
+save_image("images/gameScreen.jpg",image)
 
-coordinates_wall = coordinates_many_same(35,"assets/pared/pared", image,0.8)
+coordinates_wall = coordinates_many_same(56,"assets/pared/pared", image,0.8)
 coordinates_player = coordinates_many_same(2,"assets/jugador/jugador",image,0.8)
 coordinates_diamonds = coordinates_many_same(4,"assets/diamante/diamante", image,0.9)
 coordinates_keys = find_coordinates_objects_in_image("assets/llave.jpg",image,0.8)
@@ -99,8 +105,7 @@ coordinates_button = find_coordinates_objects_in_image("assets/boton.jpg", image
 img = np.zeros((constants.HEIGHT,constants.WIDTH,3),np.uint8)
 matrix = np.zeros((constants.MATRIX_Y,constants.MATRIX_X))
 
-
-#draw_object(img,coordinates_wall,matrix,constants.BROWN,constants.WALL)
+draw_object(img,coordinates_wall,matrix,constants.BROWN,constants.WALL)
 draw_object(img,coordinates_player, matrix,constants.GREEN,constants.PLAYER)
 draw_diamonds(img,coordinates_diamonds, matrix)
 draw_object(img,coordinates_skewers,matrix,constants.PURPLE,constants.SKEWERS)
@@ -114,7 +119,7 @@ draw_object(img,coordinates_grid,matrix,constants.PINK,constants.GRID)
 draw_object(img,coordinates_button,matrix,constants.WHITE,constants.BUTTON)
 
 
-fill_first_lines(img,matrix)
+fill_lines(img,matrix)
 print(np.matrix(matrix))
-save_image("dots.jpg",img)
+save_image("images/dots.jpg",img)
 show_image(img)
